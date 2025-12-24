@@ -135,8 +135,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit();
         }
         
-        // Cek apakah command dimulai dengan /wfh atau /wfo (untuk absensi)
-        if (strpos($messageLower, '/wfh') === 0 || strpos($messageLower, '/wfo') === 0) {
+        // Cek apakah command dimulai dengan /wfh, /wfo atau /wfa (untuk absensi)
+        if (strpos($messageLower, '/wfh') === 0 || strpos($messageLower, '/wfo') === 0 || strpos($messageLower, '/wfa') === 0) {
             // Cek apakah sudah absen hari ini
             $absenToday = $absensi->checkAbsenToday($phoneNumber);
             if ($absenToday) {
@@ -200,21 +200,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ]);
                     exit();
                 }
+
+                // Jika valid dan berada dalam radius, set alamat tetap kantor sehingga UI menampilkan nama kantor
+                if ($locationValidation['valid']) {
+                    $location['address'] = 'Kantor Pusat Menara Jamsostek';
+                }
                 
             } elseif (strpos($messageLower, '/wfh') === 0) {
                 $type = 'WFH';
                 // WFH tidak perlu validasi lokasi
+            } elseif (strpos($messageLower, '/wfa') === 0) {
+                $type = 'WFA';
+                $wfaLocation = isset($commandParts[1]) ? trim($commandParts[1]) : '';
+                if (empty($wfaLocation)) {
+                    echo json_encode([
+                        'success' => false,
+                        'message' => "❌ Absensi WFA memerlukan lokasi teks!\n\nGunakan format: /wfa [lokasi]\nContoh: /wfa PLN UIT JBT"
+                    ]);
+                    exit();
+                }
+                // Set lokasi teks untuk WFA
+                $location = ['address' => $wfaLocation];
             } else {
                 echo json_encode([
                     'success' => false,
                     'message' => "❌ Format absensi salah!\n\n" .
                                 "Format yang benar:\n" .
                                 "• `/wfo [nomor]` - untuk Work From Office\n" .
-                                "• `/wfh` - untuk Work From Home\n\n" .
+                                "• `/wfh` - untuk Work From Home\n" .
+                                "• `/wfa [lokasi]` - untuk Work From Anywhere\n\n" .
                                 "Contoh:\n" .
                                 "• `/wfo 21`\n" .
                                 "• `/wfo 5`\n" .
-                                "• `/wfh`"
+                                "• `/wfh`\n" .
+                                "• `/wfa PLN UIT JBT`"
                 ]);
                 exit();
             }

@@ -142,7 +142,8 @@ class Absensi {
                     COUNT(*) as total_absen,
                     COUNT(DISTINCT user_id) as total_user,
                     COUNT(CASE WHEN type = 'WFO' THEN 1 END) as total_wfo,
-                    COUNT(CASE WHEN type = 'WFH' THEN 1 END) as total_wfh
+                    COUNT(CASE WHEN type = 'WFH' THEN 1 END) as total_wfh,
+                    COUNT(CASE WHEN type = 'WFA' THEN 1 END) as total_wfa
                  FROM absensi
                  WHERE DATE(waktu_absen) BETWEEN :start_date AND :end_date"
             );

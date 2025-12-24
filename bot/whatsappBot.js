@@ -264,7 +264,7 @@ class WhatsAppBot {
             if (bodyLower.startsWith('/')) {
                 console.log('📨 Command received:', bodyLower, 'from:', waName);
                 
-                if (bodyLower.startsWith('/wfh') || bodyLower.startsWith('/wfo')) {
+                if (bodyLower.startsWith('/wfh') || bodyLower.startsWith('/wfo') || bodyLower.startsWith('/wfa')) {
                     await this.processAbsensi(message, body, phoneNumber, waName);
                 } else {
                     // Command lain, kirim ke PHP API untuk cek di database
@@ -278,11 +278,26 @@ class WhatsAppBot {
 
     async processAbsensi(message, body, phoneNumber, waName, hasLocationFromPending = false) {
         try {
-            // Parse apakah WFO atau WFH
-            const isWFO = body.toLowerCase().includes('wfo');
+            const bodyLower = (body || '').toLowerCase().trim();
+            // Parse jenis absensi
+            const isWFO = bodyLower.startsWith('/wfo') || bodyLower.includes(' wfo');
+            const isWFH = bodyLower.startsWith('/wfh');
+            const isWFA = bodyLower.startsWith('/wfa');
             
-            // Get location - WFO WAJIB kirim lokasi
+            // Get/Capture location
             let location = null;
+
+            // Special handling for WFA: location is the text following the command
+            if (isWFA) {
+                const parts = body.trim().split(/\s+/);
+                const wfaLocationText = parts.slice(1).join(' ').trim();
+                if (!wfaLocationText) {
+                    await message.reply('❌ Format /wfa salah. Gunakan: /wfa [lokasi]\nContoh: /wfa PLN UIT JBT');
+                    return;
+                }
+                location = { address: wfaLocationText };
+            }
+
             const isLocationMessage = message.hasLocation || message.type === 'location';
             
             if (isLocationMessage) {

@@ -113,6 +113,11 @@ async function loadData() {
             document.getElementById('totalAbsen').textContent = statsData.data.total_absen || 0;
             document.getElementById('totalWFO').textContent = statsData.data.total_wfo || 0;
             document.getElementById('totalWFH').textContent = statsData.data.total_wfh || 0;
+            // Set total WFA if the element exists
+            const totalWfaEl = document.getElementById('totalWFA');
+            if (totalWfaEl) {
+                totalWfaEl.textContent = statsData.data.total_wfa || 0;
+            }
         } else {
             console.error('Statistics error:', statsData.error);
         }
@@ -160,7 +165,13 @@ function displayAbsensi(data) {
         const phone = item.user_phone || item.phone_number || '-';
         const type = item.type || '-';
         const lantai = item.lantai ? `Lantai ${item.lantai}` : '-';
-        const lokasi = item.location_address || (item.location_latitude ? 'Tersimpan' : '-');
+        // Prioritize explicit location address (used by /wfa). If address is empty, only then check for stored coordinates.
+        let lokasi = '-';
+        if (item.location_address && item.location_address.toString().trim() !== '') {
+            lokasi = item.location_address;
+        } else if (item.location_latitude && item.location_longitude) {
+            lokasi = 'Kantor Pusat Menara Jamsostek';
+        }
         const waktu = formatDate(item.waktu_absen);
 
         return `
@@ -202,7 +213,7 @@ async function exportData() {
             const phone = item.user_phone || item.phone_number || '-';
             const type = item.type || '-';
             const lantai = item.lantai ? `Lantai ${item.lantai}` : '-';
-            const lokasi = item.location_address || (item.location_latitude ? 'Tersimpan' : '-');
+            const lokasi = (item.location_address && item.location_address.toString().trim() !== '') ? item.location_address : (item.location_latitude && item.location_longitude ? 'Tersimpan' : '-');
             const waktu = formatDate(item.waktu_absen);
 
             return [index + 1, name, phone, type, lantai, lokasi, waktu];
