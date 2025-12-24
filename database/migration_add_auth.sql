@@ -20,7 +20,8 @@ CREATE TABLE IF NOT EXISTS commands (
 -- Command lainnya bisa ditambahkan melalui admin panel
 INSERT INTO commands (command, description, is_active) VALUES
     ('/wfh', 'Work From Home - Absensi untuk bekerja dari rumah', TRUE),
-    ('/wfo', 'Work From Office - Absensi untuk bekerja di kantor (format: /wfo [nomor lantai])', TRUE)
+    ('/wfo', 'Work From Office - Absensi untuk bekerja di kantor (format: /wfo [nomor lantai])', TRUE),
+    ('/wfa', 'Work From Anywhere - Absensi dengan lokasi teks (format: /wfa [lokasi])', TRUE)
 ON CONFLICT (command) DO NOTHING;
 
 -- Index untuk mempercepat query

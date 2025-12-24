@@ -1,4 +1,24 @@
-const API_BASE = '/api';
+// Deteksi base path secara dinamis berdasarkan current page location
+const getBasePath = () => {
+    const currentPath = window.location.pathname;
+    
+    // Jika di root (localhost/), gunakan /api
+    if (currentPath === '/' || currentPath === '/index.php' || currentPath === '/login.php') {
+        return '/api';
+    }
+    
+    // Jika di subfolder (localhost/bot-wa-real/index.php), ambil base directory
+    // Contoh: /bot-wa-real/index.php -> /bot-wa-real/api
+    const pathParts = currentPath.split('/').filter(p => p);
+    if (pathParts.length > 0 && pathParts[pathParts.length - 1].endsWith('.php')) {
+        pathParts.pop(); // Hapus nama file
+    }
+    const baseDir = pathParts.length > 0 ? '/' + pathParts.join('/') : '';
+    return baseDir + '/api';
+};
+
+const API_BASE = getBasePath();
+console.log('📍 API_BASE path:', API_BASE, '(current path:', window.location.pathname + ')');
 
 // Format tanggal Indonesia
 function formatDate(dateString) {

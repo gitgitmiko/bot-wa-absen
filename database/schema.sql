@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS absensi (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     phone_number VARCHAR(20) NOT NULL,
-    type VARCHAR(10) NOT NULL CHECK (type IN ('WFO', 'WFH')),
+    type VARCHAR(10) NOT NULL CHECK (type IN ('WFO', 'WFH', 'WFA')),
     lantai VARCHAR(50),
     location_latitude DECIMAL(10, 8),
     location_longitude DECIMAL(11, 8),

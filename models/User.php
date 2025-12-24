@@ -243,5 +243,91 @@ class User {
             throw $e;
         }
     }
+
+    // Update user
+    public function updateUser($userId, $data) {
+        try {
+            $updates = [];
+            $params = ['id' => $userId];
+
+            if (isset($data['name'])) {
+                $updates[] = 'name = :name';
+                $params['name'] = $data['name'];
+            }
+            if (isset($data['wa_name'])) {
+                // Cek apakah wa_name sudah digunakan oleh user lain
+                $existing = $this->getUserByWaName($data['wa_name']);
+                if ($existing && $existing['id'] != $userId) {
+                    return ['success' => false, 'message' => 'WA Name sudah digunakan'];
+                }
+                $updates[] = 'wa_name = :wa_name';
+                $params['wa_name'] = $data['wa_name'];
+            }
+            if (isset($data['phone_number'])) {
+                $phoneNumber = $this->normalizePhoneNumber($data['phone_number']);
+                if (!empty($phoneNumber)) {
+                    // Cek apakah phone_number sudah digunakan oleh user lain
+                    $existing = $this->getUserByPhone($phoneNumber);
+                    if ($existing && $existing['id'] != $userId) {
+                        return ['success' => false, 'message' => 'Nomor HP sudah digunakan'];
+                    }
+                    $updates[] = 'phone_number = :phone_number';
+                    $params['phone_number'] = $phoneNumber;
+                }
+            }
+            if (isset($data['isAdmin'])) {
+                $updates[] = 'isAdmin = :isAdmin';
+                $params['isAdmin'] = $data['isAdmin'] ? 'TRUE' : 'FALSE';
+            }
+
+            if (empty($updates)) {
+                return ['success' => false, 'message' => 'Tidak ada data yang diupdate'];
+            }
+
+            $sql = "UPDATE users SET " . implode(', ', $updates) . 
+                   ", updated_at = CURRENT_TIMESTAMP WHERE id = :id RETURNING id, wa_name, name, phone_number, isAdmin, created_at";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+
+            return ['success' => true, 'user' => $stmt->fetch()];
+        } catch (PDOException $e) {
+            error_log("Error updateUser: " . $e->getMessage());
+            return ['success' => false, 'message' => 'Gagal mengupdate user: ' . $e->getMessage()];
+        }
+    }
+
+    // Delete user (soft delete atau hard delete)
+    public function deleteUser($userId, $hardDelete = false) {
+        try {
+            if ($hardDelete) {
+                // Hard delete
+                $stmt = $this->db->prepare("DELETE FROM users WHERE id = :id");
+                $stmt->execute(['id' => $userId]);
+            } else {
+                // Soft delete - set phone_number dan wa_name ke null atau mark as deleted
+                // Untuk sekarang kita hard delete saja karena tidak ada kolom deleted_at
+                $stmt = $this->db->prepare("DELETE FROM users WHERE id = :id");
+                $stmt->execute(['id' => $userId]);
+            }
+
+            return ['success' => true];
+        } catch (PDOException $e) {
+            error_log("Error deleteUser: " . $e->getMessage());
+            return ['success' => false, 'message' => 'Gagal menghapus user: ' . $e->getMessage()];
+        }
+    }
+
+    // Get user by ID
+    public function getUserById($userId) {
+        try {
+            $stmt = $this->db->prepare("SELECT id, wa_name, name, phone_number, isAdmin, created_at, updated_at FROM users WHERE id = :id");
+            $stmt->execute(['id' => $userId]);
+            return $stmt->fetch() ?: null;
+        } catch (PDOException $e) {
+            error_log("Error getUserById: " . $e->getMessage());
+            return null;
+        }
+    }
 }
 

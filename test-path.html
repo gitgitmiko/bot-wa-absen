@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test API Path</title>
+</head>
+<body>
+    <h1>Test API Path</h1>
+    <p>Current path: <span id="currentPath"></span></p>
+    <p>API Base: <span id="apiBase"></span></p>
+    <p>Test URL: <span id="testUrl"></span></p>
+    
+    <button onclick="testAPI()">Test API</button>
+    <div id="result"></div>
+    
+    <script>
+        const currentPath = window.location.pathname;
+        document.getElementById('currentPath').textContent = currentPath;
+        
+        // Gunakan fungsi yang sama dengan script.js
+        const getBasePath = () => {
+            const currentPath = window.location.pathname;
+            if (currentPath === '/' || currentPath === '/index.php') {
+                return '/api';
+            }
+            return './api';
+        };
+        
+        const API_BASE = getBasePath();
+        document.getElementById('apiBase').textContent = API_BASE;
+        document.getElementById('testUrl').textContent = API_BASE + '/date.php';
+        
+        async function testAPI() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p>Testing...</p>';
+            
+            try {
+                const url = API_BASE + '/date.php';
+                console.log('Testing URL:', url);
+                const response = await fetch(url);
+                const data = await response.json();
+                resultDiv.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                resultDiv.innerHTML = '<p style="color: red;">Error: ' + error.message + '</p>';
+            }
+        }
+    </script>
+</body>
+</html>
+

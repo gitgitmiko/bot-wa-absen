@@ -22,14 +22,15 @@ if (isset($_SESSION['user_id'])) {
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f5f7fa;
             margin: 0;
             padding: 20px;
         }
         .login-container {
             background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid #e0e0e0;
             padding: 40px;
             width: 100%;
             max-width: 400px;
@@ -40,12 +41,14 @@ if (isset($_SESSION['user_id'])) {
         }
         .login-header h1 {
             margin: 0 0 10px 0;
-            color: #333;
+            color: #1e3a5f;
             font-size: 28px;
+            font-weight: 600;
         }
         .login-header p {
-            color: #666;
+            color: #6b7280;
             margin: 0;
+            font-size: 14px;
         }
         .form-group {
             margin-bottom: 20px;
@@ -59,15 +62,17 @@ if (isset($_SESSION['user_id'])) {
         .form-group input {
             width: 100%;
             padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
             font-size: 14px;
             transition: border-color 0.3s;
             box-sizing: border-box;
+            background: #fff;
         }
         .form-group input:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: #1e3a5f;
+            box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.1);
         }
         .btn-login, .btn-register, .btn-reset {
             width: 100%;
@@ -81,26 +86,33 @@ if (isset($_SESSION['user_id'])) {
             margin-bottom: 10px;
         }
         .btn-login {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #1e3a5f;
             color: white;
+            border: 1px solid #0d2841;
         }
         .btn-login:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            background: #0d2841;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
         .btn-register {
-            background: #f0f0f0;
-            color: #333;
+            background: #f5f7fa;
+            color: #1e3a5f;
+            border: 1px solid #e0e0e0;
         }
         .btn-register:hover {
-            background: #e0e0e0;
+            background: #e8edf3;
+            border-color: #cbd5e0;
         }
         .btn-reset {
-            background: #ff9800;
+            background: #c53030;
             color: white;
+            border: 1px solid #9b2c2c;
         }
         .btn-reset:hover {
-            background: #f57c00;
+            background: #9b2c2c;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
         .error-message, .success-message {
             padding: 12px;
@@ -133,8 +145,8 @@ if (isset($_SESSION['user_id'])) {
             transition: all 0.3s;
         }
         .form-tab.active {
-            color: #667eea;
-            border-bottom-color: #667eea;
+            color: #1e3a5f;
+            border-bottom-color: #1e3a5f;
             font-weight: 600;
         }
         .form-content {
@@ -148,7 +160,7 @@ if (isset($_SESSION['user_id'])) {
 <body>
     <div class="login-container">
         <div class="login-header">
-            <h1>🔐 Login</h1>
+            <h1>Login</h1>
             <p>Bot Absensi WhatsApp</p>
         </div>
 

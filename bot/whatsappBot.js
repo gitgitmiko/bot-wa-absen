@@ -1,6 +1,7 @@
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const http = require('http');
+const https = require('https');
 const cron = require('node-cron');
 const reminderConfig = require('../config/reminder');
 const botConfig = require('../config/bot');
@@ -8,6 +9,7 @@ const botConfig = require('../config/bot');
 // Konfigurasi
 // Ganti dengan URL website Anda di aapanel
 const BOT_API_URL = process.env.BOT_API_URL || 'http://gitgitmiko.my.id/api/bot/bot.php';
+const GROUPS_API_URL = process.env.GROUPS_API_URL || 'http://gitgitmiko.my.id/api/bot/groups.php';
 
 class WhatsAppBot {
     constructor() {
@@ -40,8 +42,67 @@ class WhatsAppBot {
         // Format: { phoneNumber: { message: 'absen wfo lantai 21', waName: '...', timestamp: ... } }
         this.pendingAbsensi = new Map();
 
+        // Cache untuk allowed group IDs dari database
+        this.allowedGroupIds = [];
+        this.lastGroupIdsFetch = 0;
+        this.groupIdsCacheTTL = 5 * 60 * 1000; // 5 menit
+
         this.setupEventHandlers();
         this.setupReminder();
+        
+        // Load group IDs saat startup
+        this.loadAllowedGroupIds();
+    }
+
+    // Load allowed group IDs dari database
+    async loadAllowedGroupIds() {
+        try {
+            const response = await this.httpRequest(`${GROUPS_API_URL}?active_only=true`, 'GET');
+            const data = JSON.parse(response);
+            
+            if (data.success && Array.isArray(data.data)) {
+                this.allowedGroupIds = data.data;
+                this.lastGroupIdsFetch = Date.now();
+                console.log(`✅ Loaded ${this.allowedGroupIds.length} allowed group IDs from database`);
+                if (this.allowedGroupIds.length > 0) {
+                    console.log('   Groups:', this.allowedGroupIds.join(', '));
+                }
+            } else {
+                console.warn('⚠️ Failed to load group IDs from database, using fallback');
+                // Fallback ke config jika database error
+                this.allowedGroupIds = botConfig.allowedGroupIds || [];
+            }
+        } catch (error) {
+            console.error('❌ Error loading group IDs from database:', error.message);
+            // Fallback ke config jika API error
+            this.allowedGroupIds = botConfig.allowedGroupIds || [];
+        }
+    }
+
+    // Cek apakah group ID diizinkan (dengan auto-refresh cache)
+    async isGroupAllowed(groupId) {
+        // Refresh cache jika sudah expired
+        if (Date.now() - this.lastGroupIdsFetch > this.groupIdsCacheTTL) {
+            await this.loadAllowedGroupIds();
+        }
+
+        // Jika tidak ada group IDs di cache, cek langsung ke API
+        if (this.allowedGroupIds.length === 0) {
+            try {
+                const response = await this.httpRequest(`${GROUPS_API_URL}?group_id=${encodeURIComponent(groupId)}`, 'GET');
+                const data = JSON.parse(response);
+                return data.success && data.allowed === true;
+            } catch (error) {
+                console.error('❌ Error checking group ID:', error.message);
+                // Fallback: jika database error, gunakan config
+                return botConfig.allowedGroupIds && botConfig.allowedGroupIds.length > 0 
+                    ? botConfig.allowedGroupIds.includes(groupId)
+                    : true; // Jika config juga kosong, izinkan semua
+            }
+        }
+
+        // Cek dari cache
+        return this.allowedGroupIds.includes(groupId);
     }
 
     setupEventHandlers() {
@@ -98,19 +159,23 @@ class WhatsAppBot {
                 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
             }
             
-            // Cek whitelist grup
-            if (botConfig.allowedGroupIds && botConfig.allowedGroupIds.length > 0) {
-                if (!botConfig.allowedGroupIds.includes(groupId)) {
+            // Cek whitelist grup dari database
+            const isAllowed = await this.isGroupAllowed(groupId);
+            
+            if (!isAllowed) {
+                // Cek apakah ada group IDs yang dikonfigurasi (jika tidak ada, izinkan semua)
+                if (this.allowedGroupIds.length > 0) {
                     // Grup tidak diizinkan, skip pesan
                     if (isCommand && botConfig.logAllGroupIds) {
                         console.log('⚠️ Grup TIDAK diizinkan - Bot tidak akan merespon');
-                        console.log('   Untuk menambahkan, salin Group ID di atas dan tambahkan ke config/bot.js');
+                        console.log('   Untuk menambahkan, tambahkan Group ID ke database melalui web admin');
                     }
                     return;
-                } else {
-                    if (isCommand && botConfig.logAllGroupIds) {
-                        console.log('✅ Grup diizinkan - Bot akan merespon');
-                    }
+                }
+                // Jika tidak ada group IDs di database, izinkan semua (backward compatibility)
+            } else {
+                if (isCommand && botConfig.logAllGroupIds) {
+                    console.log('✅ Grup diizinkan - Bot akan merespon');
                 }
             }
             
@@ -490,7 +555,25 @@ class WhatsAppBot {
 
     async sendReminder() {
         try {
-            const { groupIds, message } = reminderConfig;
+            const { message } = reminderConfig;
+            
+            // Ambil group IDs dari database
+            let groupIds = [];
+            try {
+                const response = await this.httpRequest(`${GROUPS_API_URL}?active_only=true`, 'GET');
+                const data = JSON.parse(response);
+                
+                if (data.success && Array.isArray(data.data)) {
+                    groupIds = data.data;
+                } else {
+                    // Fallback ke config jika database error
+                    groupIds = reminderConfig.groupIds || [];
+                }
+            } catch (error) {
+                console.warn('⚠️ Error loading group IDs from database, using fallback:', error.message);
+                // Fallback ke config jika API error
+                groupIds = reminderConfig.groupIds || [];
+            }
             
             if (!groupIds || groupIds.length === 0) {
                 console.warn('⚠️ Tidak ada group ID yang dikonfigurasi untuk reminder');
@@ -515,6 +598,52 @@ class WhatsAppBot {
         } catch (error) {
             console.error('❌ Error dalam sendReminder:', error);
         }
+    }
+
+    // Helper function untuk HTTP request (karena Node.js tidak punya fetch built-in)
+    httpRequest(url, method = 'GET', data = null) {
+        return new Promise((resolve, reject) => {
+            const urlObj = new URL(url);
+            const isHttps = urlObj.protocol === 'https:';
+            const httpModule = isHttps ? https : http;
+            
+            const options = {
+                hostname: urlObj.hostname,
+                port: urlObj.port || (isHttps ? 443 : 80),
+                path: urlObj.pathname + urlObj.search,
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            };
+
+            if (data) {
+                const postData = JSON.stringify(data);
+                options.headers['Content-Length'] = Buffer.byteLength(postData);
+            }
+
+            const req = httpModule.request(options, (res) => {
+                let responseData = '';
+                
+                res.on('data', (chunk) => {
+                    responseData += chunk;
+                });
+                
+                res.on('end', () => {
+                    resolve(responseData);
+                });
+            });
+
+            req.on('error', (error) => {
+                reject(error);
+            });
+
+            if (data) {
+                req.write(JSON.stringify(data));
+            }
+            
+            req.end();
+        });
     }
 }
 
