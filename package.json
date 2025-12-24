@@ -1,0 +1,26 @@
+{
+  "name": "bot-wa-absensi-php",
+  "version": "1.0.0",
+  "description": "Bot WhatsApp untuk Absensi - PHP Version dengan Node.js Bot",
+  "main": "bot/whatsappBot.js",
+  "scripts": {
+    "start": "node bot/whatsappBot.js",
+    "dev": "nodemon bot/whatsappBot.js"
+  },
+  "keywords": ["whatsapp", "bot", "absensi", "php", "aapanel"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "whatsapp-web.js": "^1.23.0",
+    "qrcode-terminal": "^0.12.0",
+    "node-cron": "^3.0.3"
+  },
+  "overrides": {
+    "puppeteer": {
+      "chromium": "skip"
+    }
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
